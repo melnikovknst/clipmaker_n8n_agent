@@ -19,7 +19,8 @@
         -240
       ],
       "id": "2cd440ff-cb72-474b-9d0f-62ffdfa8375e",
-      "name": "Schedule Trigger"
+      "name": "Schedule Trigger",
+      "disabled": true
     },
     {
       "parameters": {
@@ -163,67 +164,11 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -16,
-        -96
+        -48,
+        0
       ],
       "id": "216be60e-f5c6-46dd-ad2c-2918289b6f04",
       "name": "When clicking ‘Execute workflow’"
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "propertyName": "isSeen",
-        "key": "={{ \"seen:\" + $json.videoId }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.redis",
-      "typeVersion": 1,
-      "position": [
-        1600,
-        -96
-      ],
-      "id": "1a102fb2-7104-487e-b188-5676ea157c98",
-      "name": "Redis",
-      "credentials": {
-        "redis": {
-          "id": "e9BRyzVkU9IkE1iz",
-          "name": "Redis account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "f7ef7217-6e23-41df-bbf5-3b27ef919a2d",
-              "leftValue": "={{ $json.isSeen }}",
-              "rightValue": "=",
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1904,
-        80
-      ],
-      "id": "33f937dc-51db-4fcf-bab5-6960f86c31c0",
-      "name": "If1"
     },
     {
       "parameters": {
@@ -260,31 +205,6 @@
       "name": "Loop Over Items"
     },
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        -48,
-        304
-      ],
-      "id": "20fd5875-e5c7-4dbb-b241-dc3adf7aa170",
-      "name": "No Operation, do nothing"
-    },
-    {
-      "parameters": {
-        "content": "после обработки батча из 10 видосов можно сразу запросить некст пачку вместо таймера",
-        "height": 96
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -112,
-        448
-      ],
-      "id": "223d7845-a03a-45c3-a2cf-faef25c028cd",
-      "name": "Sticky Note1"
-    },
-    {
       "parameters": {
         "content": "запрос видосов с yt\n",
         "height": 80,
@@ -316,21 +236,6 @@
     },
     {
       "parameters": {
-        "content": "узнаем не нарезали ли мы уже этот видос",
-        "height": 80,
-        "width": 320
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1488,
-        -128
-      ],
-      "id": "94927fa9-9b29-448e-af8d-d37b36c1d812",
-      "name": "Sticky Note4"
-    },
-    {
-      "parameters": {
         "content": "Валидный видос заносим в базу отработанных",
         "height": 80,
         "width": 208
@@ -343,115 +248,6 @@
       ],
       "id": "5952ba5e-156d-4f69-a635-71e8d8f45224",
       "name": "Sticky Note5"
-    },
-    {
-      "parameters": {
-        "mode": "combineBySql",
-        "query": "SELECT * FROM input2 LEFT JOIN input1 ON input2.name = input1.id",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        1696,
-        112
-      ],
-      "id": "f3400561-40ad-485a-a865-7a66ff0cd7da",
-      "name": "Merge"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "08c9053d-9abb-4fc6-ae61-20c100ecb296",
-              "name": "videoId",
-              "value": "={{ $json.videoId }}",
-              "type": "string"
-            },
-            {
-              "id": "370b9f65-5347-40ea-97b7-0e487102d685",
-              "name": "url",
-              "value": "={{ $json.url }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1136,
-        0
-      ],
-      "id": "48feaa04-1334-4823-af10-c9cfc3c0a544",
-      "name": "Edit Fields"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "f3856e02-67d5-4cf5-b325-ee7568a5fbfc",
-              "name": "videoId",
-              "value": "={{ $json.videoId }}",
-              "type": "string"
-            },
-            {
-              "id": "b4f416c0-b6a7-4d30-83bf-17b0e980be4f",
-              "name": "url",
-              "value": "={{ $json.url }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2192,
-        80
-      ],
-      "id": "130bdb8c-07ca-4b18-8a7d-43008160b3c0",
-      "name": "Edit Fields1"
-    },
-    {
-      "parameters": {
-        "operation": "delete",
-        "key": "={{ \"seen:\" + $json.videoId }}"
-      },
-      "type": "n8n-nodes-base.redis",
-      "typeVersion": 1,
-      "position": [
-        1904,
-        320
-      ],
-      "id": "f3bf02d9-de89-4916-b3da-9377fdfc321f",
-      "name": "Redis2",
-      "credentials": {
-        "redis": {
-          "id": "e9BRyzVkU9IkE1iz",
-          "name": "Redis account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "content": "СЕЙЧАС ЭТА НОДА - ЗАГЛУШКА для тестов\n\nона удаляет из бд видос, который отбросил if. ДЛЯ ПОЛНОЦЕННОЙ КОРРЕКТНОЙ ЦИКЛИЧНОЙ РАБОТЫ НАДО ИЗ false ВЫХОДА СДЕЛАТЬ СВЯЗЬ С Loop Over Items ",
-        "height": 176,
-        "width": 320,
-        "color": 3
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1792,
-        464
-      ],
-      "id": "c1f656b2-4c5d-4395-8d6f-ab685dcad7e8",
-      "name": "Sticky Note6"
     },
     {
       "parameters": {
@@ -483,6 +279,270 @@
       ],
       "id": "d19c7f16-8bad-459e-a714-f70d0e76c744",
       "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## ДРОП БАЗЫ\n",
+        "height": 80,
+        "width": 176,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        416
+      ],
+      "id": "660b2da6-1615-4d0d-8487-6ec1023524fd",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3856e02-67d5-4cf5-b325-ee7568a5fbfc",
+              "name": "videoId",
+              "value": "={{ $json.videoId }}",
+              "type": "string"
+            },
+            {
+              "id": "b4f416c0-b6a7-4d30-83bf-17b0e980be4f",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2192,
+        80
+      ],
+      "id": "130bdb8c-07ca-4b18-8a7d-43008160b3c0",
+      "name": "drop isSeen flag"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7ef7217-6e23-41df-bbf5-3b27ef919a2d",
+              "leftValue": "={{ $json.isSeen }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        80
+      ],
+      "id": "33f937dc-51db-4fcf-bab5-6960f86c31c0",
+      "name": "isSeen"
+    },
+    {
+      "parameters": {
+        "mode": "combineBySql",
+        "query": "SELECT * FROM input2 LEFT JOIN input1 ON input2.name = input1.id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1696,
+        112
+      ],
+      "id": "f3400561-40ad-485a-a865-7a66ff0cd7da",
+      "name": "add isSeen flag",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08c9053d-9abb-4fc6-ae61-20c100ecb296",
+              "name": "videoId",
+              "value": "={{ $json.videoId }}",
+              "type": "string"
+            },
+            {
+              "id": "370b9f65-5347-40ea-97b7-0e487102d685",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        0
+      ],
+      "id": "48feaa04-1334-4823-af10-c9cfc3c0a544",
+      "name": "drop useless fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1744,
+        528
+      ],
+      "id": "c94d4a3d-d414-41ba-8dcb-d512479f80cb",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst keys = (item.json.keys || []);\n\n// Возвращаем по одному item на ключ\nreturn keys.map(k => ({ json: { key: k } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        528
+      ],
+      "id": "4cecf75f-8fd2-404f-98a0-f65dddbdc59d",
+      "name": "split keys"
+    },
+    {
+      "parameters": {
+        "operation": "keys",
+        "keyPattern": "seen:*",
+        "getValues": false
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        528
+      ],
+      "id": "74f54ffb-7e71-4763-a098-7ea68557bcf6",
+      "name": "get all keys",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $json.key }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        624
+      ],
+      "id": "f3bf02d9-de89-4916-b3da-9377fdfc321f",
+      "name": "del key",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "keys",
+        "keyPattern": "seen:*"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        480
+      ],
+      "id": "7cd080bc-4236-42f0-87ae-74d11dbc8181",
+      "name": "get all keys (check)",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "isSeen",
+        "key": "={{ \"seen:\" + $json.videoId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -96
+      ],
+      "id": "1a102fb2-7104-487e-b188-5676ea157c98",
+      "name": "isSeen request",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "filters": {
+          "q": ""
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        752,
+        336
+      ],
+      "id": "208b45d6-753d-4a31-8fb9-1795efb724b6",
+      "name": "Get many videos"
+    },
+    {
+      "parameters": {
+        "content": "## Брат\nЗамени на нормальный ЮТ блок. Правильнее и безопаснее (апи ключ в \nсохранности будет)",
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        688,
+        192
+      ],
+      "id": "eaa2b556-68a2-490e-8131-59dd65ee326e",
+      "name": "Sticky Note1"
     }
   ],
   "pinData": {},
@@ -529,7 +589,7 @@
       "main": [
         [
           {
-            "node": "Edit Fields",
+            "node": "drop useless fields",
             "type": "main",
             "index": 0
           }
@@ -547,18 +607,30 @@
         ]
       ]
     },
-    "Redis": {
+    "Loop Over Items": {
       "main": [
         [
           {
-            "node": "Merge",
+            "node": "Message a model",
             "type": "main",
             "index": 0
+          }
+        ],
+        [
+          {
+            "node": "isSeen request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "add isSeen flag",
+            "type": "main",
+            "index": 1
           }
         ]
       ]
     },
-    "If1": {
+    "isSeen": {
       "main": [
         [
           {
@@ -567,64 +639,98 @@
             "index": 0
           },
           {
-            "node": "Edit Fields1",
+            "node": "drop isSeen flag",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Redis2",
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Loop Over Items": {
+    "add isSeen flag": {
       "main": [
         [
           {
-            "node": "No Operation, do nothing",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Redis",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "No Operation, do nothing": {
-      "main": [
-        []
-      ]
-    },
-    "Merge": {
-      "main": [
-        [
-          {
-            "node": "If1",
+            "node": "isSeen",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Edit Fields": {
+    "drop useless fields": {
       "main": [
         [
           {
             "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "get all keys (check)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "del key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split keys": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get all keys": {
+      "main": [
+        [
+          {
+            "node": "split keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "del key": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "isSeen request": {
+      "main": [
+        [
+          {
+            "node": "add isSeen flag",
             "type": "main",
             "index": 0
           }
@@ -636,7 +742,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "5894be38-614a-42e5-9122-30138f0f5953",
+  "versionId": "f7a6f9f8-2720-4485-923a-7df664c69609",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "c6edc769acbcaf6a9fec4effe84de8dc0c3271b444bd76cb911596e0007b3f0d"
