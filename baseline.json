@@ -1,0 +1,646 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -32,
+        -240
+      ],
+      "id": "2cd440ff-cb72-474b-9d0f-62ffdfa8375e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-1.5-pro",
+          "mode": "list",
+          "cachedResultName": "models/gemini-1.5-pro"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Ты ассистент по поиску видео YouTube. Твоя задача — готовить краткий поисковый запрос и чёткие фильтры под подкасты/длинные интервью/интересные видео. \nОтвечай строго валидным JSON по схеме:\n{\n  \"query\": \"string\",\n  \"filters\": {\n    \"language\": \"ru|en|any\",\n    \"min_duration_min\": number,\n    \"max_duration_min\": number,\n    \"exclude_shorts\": true,\n    \"must_not_contain\": [ \"shorts\", \"clips\", \"reaction\" ],\n    \"preferred_keywords\": [ \"подкаст\", \"интервью\" ],\n    \"published_within_days\": number\n  },\n  \"notes\": \"string\"\n}\nНе добавляй пояснений вне JSON.",
+              "role": "model"
+            },
+            {
+              "content": "Сформируй поисковый запрос для YouTube.  \nТребования:  \n- Подкасты или длинные интервью.  \n- Язык: русский.  \n- Длительность: от 40 до 180 минут.  \n- Новизна: не старше 365 дней.  \n- Исключить shorts, клипы, реакции.  \n- Тематика: бизнес, политика, экономика, социальные и культурные тренды.  \n- Должно быть интересно и цепляюще.  \n\nВерни только JSON."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5417b777-ff3a-4b3d-9cad-9a7241b0d227",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ryxUzROF1QOUbNeK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Парсим ответ Gemini независимо от структуры и обёртки ```json ... ```\nreturn items.map(({ json }) => {\n  // 1) Берём текст из разных возможных мест\n  let raw =\n    json?.content?.parts?.[0]?.text ??\n    json?.text ??\n    \"\";\n\n  // 2) Превращаем в строку и снимаем тройные кавычки/префикс \"json\"\n  raw = String(raw)\n    .trim()\n    .replace(/^```(?:json)?\\s*/i, \"\")   // убираем ```json или ```\n    .replace(/```$/i, \"\")               // закрывающие ```\n    .trim();\n\n  // 3) Пытаемся распарсить JSON\n  let obj;\n  try {\n    obj = JSON.parse(raw);\n  } catch (e) {\n    // Если вдруг модель прислала невалидный JSON — пробрасываем сырец для дебага\n    obj = { parse_error: String(e), raw_text: raw };\n  }\n\n  return { json: obj };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "b09d0bdb-85df-4299-8744-b7ac99d8206f",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "KEY"
+            },
+            {
+              "name": "part",
+              "value": "snippet"
+            },
+            {
+              "name": "type",
+              "value": "video"
+            },
+            {
+              "name": "q",
+              "value": "={{$json[\"query\"]}}"
+            },
+            {
+              "name": "maxResults",
+              "value": "10"
+            },
+            {
+              "name": "order",
+              "value": "relevance"
+            },
+            {
+              "name": "relevanceLanguage",
+              "value": "ru"
+            },
+            {
+              "name": "regionCode",
+              "value": "RU"
+            },
+            {
+              "name": "publishedAfter",
+              "value": "={{ new Date(Date.now() - ($json[\"filters\"][\"published_within_days\"]||365) * 24 * 3600 * 1000).toISOString() }}"
+            },
+            {
+              "name": "videoDuration",
+              "value": "long"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "223bae83-32f4-4e74-a668-6798d52fd26e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Из HTTP Request\nconst res = items[0].json || {};\nconst list = Array.isArray(res.items) ? res.items : [];\n\n// стоп-слова для клипов/шортсов/нарезок\nconst banned = [\"shorts\",\"clip\",\"clips\",\"reaction\",\"нарезка\",\"фрагмент\",\"шорт\"];\n\nfunction isOk(snippet){\n  const t = (snippet?.title||\"\").toLowerCase();\n  const d = (snippet?.description||\"\").toLowerCase();\n  return !banned.some(k => t.includes(k) || d.includes(k));\n}\n\n// ключ для Redis — нормализуем тему запроса\nconst topic = (items[0].json.query || \"\").trim().toLowerCase();\n\nconst out = [];\nfor (const it of list) {\n  const id = it?.id?.videoId;\n  if (!id) continue;\n  if (!isOk(it.snippet)) continue;\n\n  out.push({\n    json: {\n      topic,\n      videoId: id,\n      url: `https://www.youtube.com/watch?v=${id}`,\n      title: it.snippet?.title || \"\",\n      channel: it.snippet?.channelTitle || \"\",\n      publishedAt: it.snippet?.publishedAt || \"\",\n      description: it.snippet?.description || \"\",\n      thumb: it.snippet?.thumbnails?.high?.url || it.snippet?.thumbnails?.medium?.url || \"\"\n    }\n  });\n}\n\nif (!out.length) {\n  return [{ json: { error: \"no_candidates_after_filter\" } }];\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "8228a059-e9e2-4945-a118-bfe169a9fa8c",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "content": "Формирование json запроса для поиска видео",
+        "height": 80,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "c6b94a7b-aeec-455c-931c-86ba45677713",
+      "name": "Sticky Note",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -96
+      ],
+      "id": "216be60e-f5c6-46dd-ad2c-2918289b6f04",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "isSeen",
+        "key": "={{ \"seen:\" + $json.videoId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -96
+      ],
+      "id": "1a102fb2-7104-487e-b188-5676ea157c98",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7ef7217-6e23-41df-bbf5-3b27ef919a2d",
+              "leftValue": "={{ $json.isSeen }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        80
+      ],
+      "id": "33f937dc-51db-4fcf-bab5-6960f86c31c0",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ \"seen:\" + $json.videoId }}",
+        "value": "1"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        -128
+      ],
+      "id": "fbb7cbd6-8db7-431a-ba68-f7a9498d8fbc",
+      "name": "Redis1",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "7a4f0749-dc49-4cc3-994a-c3de17264ea1",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        304
+      ],
+      "id": "20fd5875-e5c7-4dbb-b241-dc3adf7aa170",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "content": "после обработки батча из 10 видосов можно сразу запросить некст пачку вместо таймера",
+        "height": 96
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        448
+      ],
+      "id": "223d7845-a03a-45c3-a2cf-faef25c028cd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "запрос видосов с yt\n",
+        "height": 80,
+        "width": 192
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -96
+      ],
+      "id": "e80c030b-7040-4e27-be81-9ef2c6610852",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "                                      Валидация видосов",
+        "height": 80,
+        "width": 1008
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -272
+      ],
+      "id": "79aea06f-6dc7-468b-9fbe-635764cecbd4",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "узнаем не нарезали ли мы уже этот видос",
+        "height": 80,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        -128
+      ],
+      "id": "94927fa9-9b29-448e-af8d-d37b36c1d812",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "Валидный видос заносим в базу отработанных",
+        "height": 80,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        -208
+      ],
+      "id": "5952ba5e-156d-4f69-a635-71e8d8f45224",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "mode": "combineBySql",
+        "query": "SELECT * FROM input2 LEFT JOIN input1 ON input2.name = input1.id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1696,
+        112
+      ],
+      "id": "f3400561-40ad-485a-a865-7a66ff0cd7da",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "08c9053d-9abb-4fc6-ae61-20c100ecb296",
+              "name": "videoId",
+              "value": "={{ $json.videoId }}",
+              "type": "string"
+            },
+            {
+              "id": "370b9f65-5347-40ea-97b7-0e487102d685",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        0
+      ],
+      "id": "48feaa04-1334-4823-af10-c9cfc3c0a544",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f3856e02-67d5-4cf5-b325-ee7568a5fbfc",
+              "name": "videoId",
+              "value": "={{ $json.videoId }}",
+              "type": "string"
+            },
+            {
+              "id": "b4f416c0-b6a7-4d30-83bf-17b0e980be4f",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2192,
+        80
+      ],
+      "id": "130bdb8c-07ca-4b18-8a7d-43008160b3c0",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ \"seen:\" + $json.videoId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        320
+      ],
+      "id": "f3bf02d9-de89-4916-b3da-9377fdfc321f",
+      "name": "Redis2",
+      "credentials": {
+        "redis": {
+          "id": "e9BRyzVkU9IkE1iz",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "СЕЙЧАС ЭТА НОДА - ЗАГЛУШКА для тестов\n\nона удаляет из бд видос, который отбросил if. ДЛЯ ПОЛНОЦЕННОЙ КОРРЕКТНОЙ ЦИКЛИЧНОЙ РАБОТЫ НАДО ИЗ false ВЫХОДА СДЕЛАТЬ СВЯЗЬ С Loop Over Items ",
+        "height": 176,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        464
+      ],
+      "id": "c1f656b2-4c5d-4395-8d6f-ab685dcad7e8",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "продолжай отсюда. тут тебе доступно videoID и url",
+        "height": 80,
+        "width": 256,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        96
+      ],
+      "id": "23c0ff6b-f70f-4d8a-aeee-36eecdf207e0",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "       тупик",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        -112
+      ],
+      "id": "d19c7f16-8bad-459e-a714-f70d0e76c744",
+      "name": "Sticky Note8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5894be38-614a-42e5-9122-30138f0f5953",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6edc769acbcaf6a9fec4effe84de8dc0c3271b444bd76cb911596e0007b3f0d"
+  },
+  "id": "0EkO6PMAwX12pbAc",
+  "tags": []
+}
